@@ -1,0 +1,172 @@
+etherchannel 3 switches cisco
+/////////////////////////
+D1
+config t
+hostname D1
+end
+
+show interfaces g1/0/5 switchport
+show interfaces trunk
+config t
+interface g1/0/6
+switchport mode trunk
+
+ end
+config t
+interface range g1/0/5-6
+switchport mode trunk
+switchport nonegotiate
+end
+ no shutdown
+end
+
+#Switch D1
+
+hostname D1
+
+banner motd # D1, Implement EtherChannel #
+
+line con 0
+
+ exec-timeout 0 0
+
+ logging synchronous
+
+ exit
+
+interface range g1/0/1-24, g1/1/1-4, g0/0
+
+ shutdown
+
+ exit
+
+interface range g1/0/1-6
+
+ switchport mode trunk
+
+ no shutdown
+
+ exit
+
+config t
+
+interface port-channel 2
+switchport trunk native vlan 999
+end 
+show interfaces trunk | i Port|Po2
+
+
+
+
+////////////////////////////////
+A1
+ config t
+hostname A1
+end
+show interfaces f0/1 switchport
+conf t
+interface f0/1
+switchport mode dynamic desirable
+ end
+show interfaces trunk
+
+show interfaces f0/1 switchport | i Mode
+config t
+default interface range f0/1-2
+
+#Switch A1
+
+hostname A1
+
+banner motd # A1, Implement EtherChannel#
+
+line con 0
+
+ exec-timeout 0 0
+
+ logging synchronous
+
+ exit
+
+interface range f0/1-24, g0/1-2
+
+ shutdown
+
+ exit
+
+interface range f0/1-4
+
+ switchport mode trunk
+
+ no shutdown
+
+ exit
+show interfaces trunk
+
+ config t
+interface range f0/3-4
+channel-group 1 mode on
+
+show etherchannel summary
+
+show spanning-tree
+config t
+interface port-channel 1
+switchport trunk native vlan 999
+end
+
+show interfaces trunk
+
+interface range f0/1-2
+channel-group 2 mode desirable non-silent
+end
+show etherchannel summary
+
+
+///////////////////////////////
+D2
+#Switch D2
+
+hostname D2
+
+banner motd # D2, Implement EtherChannel #
+
+line con 0
+
+ exec-timeout 0 0
+
+ logging synchronous
+
+ exit
+
+interface range g1/0/1-24, g1/1/1-4, g0/0
+
+ shutdown
+
+ exit
+
+interface range g1/0/1-6
+
+ switchport mode trunk
+
+ no shutdown
+
+ exit
+
+config t
+interface range g1/0/5-6
+switchport nonegotiate
+
+end
+
+config t
+interface range g1/0/5-6
+channel-group 1 mode on
+
+#lacp
+show interfaces trunk
+ config t
+interface range g1/0/1-4
+ channel-group 3 mode active
+show etherchannel summary
+

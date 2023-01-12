@@ -1,0 +1,231 @@
+
+
+
+-----------R1----------
+
+
+######Router R1
+
+
+hostname R1
+no ip domain lookup
+line con 0
+logging sync
+exec-time 0 0
+exit
+banner motd # This is R1, Path Control Using PBR #
+interface G0/0
+description Connection to R2
+ip add 172.16.0.2 255.255.255.252
+no shut
+exit
+interface S2/1
+description Serial Connection to R3
+ip add 172.16.2.1 255.255.255.252
+no shut
+exit
+interface G1/0
+description Connection to D1
+ip add 10.10.0.1 255.255.255.252
+no shut
+exit
+
+
+router ospf 123
+router-id 1.1.1.1
+auto-cost reference-bandwidth 1000
+network 10.10.0.0 0.0.0.3 area 0
+network 172.16.0.0 0.0.0.3 area 0
+network 172.16.2.0 0.0.0.3 area 0
+end
+
+
+ip access-list standard Lo2-ACL
+remark ACL matches D1 Lo2 traffic
+permit 10.10.2.0 0.0.0.255
+exit
+
+route-map R1-to-R3 permit
+description RM to forward Lo2 traffic to R3
+match ip address Lo2-ACL
+set ip next-hop 172.16.2.2
+exit
+
+interface g1/0
+ip policy route-map R1-to-R3
+end
+
+
+
+ip access-list extended R1-TRAFFIC
+permit ip any 192.168.1.0 0.0.0.255
+exit
+
+route-map LOCAL-PBR permit
+match ip address R1-TRAFFIC
+set ip next-hop 172.16.2.2
+exit
+
+ip local policy route-map LOCAL-PBR
+exit
+
+
+---------R2------------
+
+
+hostname R2
+no ip domain lookup
+line con 0
+logging sync
+exec-time 0 0
+exit
+banner motd # This is R2, Path Control Using PBR #
+interface G0/0
+description Connection to R1
+ip add 172.16.0.1 255.255.255.252
+no shut
+exit
+interface G1/0
+description Connection to R3
+ip address 172.16.1.1 255.255.255.252
+no shut
+exit
+
+
+router ospf 123
+router-id 2.2.2.1
+auto-cost reference-bandwidth 1000
+network 172.16.0.0 0.0.0.3 area 0
+network 172.16.1.0 0.0.0.3 area 0
+end
+
+
+
+---------------R3----------
+
+hostname R3
+no ip domain lookup
+line con 0
+logging sync
+exec-time 0 0
+exit
+banner motd # This is R3, Path Control Using PBR #
+interface G0/0
+description Connection to R2
+ip add 172.16.1.2 255.255.255.252
+no shut
+exit
+interface S2/1
+description Serial Connection to R1
+ip add 172.16.2.2 255.255.255.252
+no shut
+exit
+interface G1/0
+description Connection to D2
+ip add 192.168.0.1 255.255.255.252
+no shut
+exit
+
+router ospf 123
+router-id 3.3.3.1
+auto-cost reference-bandwidth 1000
+network 192.168.0.0 0.0.0.3 area 0
+network 172.16.1.0 0.0.0.3 area 0
+network 172.16.2.0 0.0.0.3 area 0
+end
+
+
+
+
+-------------SWITCH D1 ------------
+
+hostname D1
+no ip domain lookup
+line con 0
+exec-timeout 0 0
+logging synchronous
+exit
+banner motd # This is D1, Path Control Using PBR #
+interface Ethernet0/0 
+no switchport
+description Connects to R1
+ip address 10.10.0.2 255.255.255.252
+no shut
+exit
+interface Loopback 1
+description Interface simulates network
+ip ospf network point-to-point
+ip address 10.10.1.1 255.255.255.0
+exit
+interface Loopback 2
+description Interface simulates network
+ip ospf network point-to-point
+ip address 10.10.2.1 255.255.255.0
+exit
+
+
+ip routing
+router ospf 123
+router-id 1.1.1.2
+auto-cost reference-bandwidth 1000
+network 10.10.0.0 0.0.0.3 area 0
+network 10.10.1.0 0.0.0.255 area 0
+network 10.10.2.0 0.0.0.255 area 0
+end
+
+
+
+
+
+--------------------SWITCH D2----------------
+
+hostname D2
+no ip domain lookup
+line con 0
+logging sync
+exec-time 0 0
+exit
+banner motd # This is D2, Path Control Using PBR #
+interface Ethernet0/0
+no switchport
+description Connects to R3
+ip address 192.168.0.2 255.255.255.252
+no shut
+exit
+interface Loopback 1
+description Interface simulates network
+ip ospf network point-to-point
+ip address 192.168.1.1 255.255.255.0
+exit
+
+
+
+ip routing
+router ospf 123
+router-id 3.3.3.2
+auto-cost reference-bandwidth 1000
+network 192.168.0.0 0.0.0.3 area 0
+network 192.168.1.0 0.0.0.255 area 0
+end
+
+-----------------TCLSH-----------------
+
+
+
+tclsh
+foreach address {
+10.10.0.1
+10.10.0.2
+10.10.1.1
+10.10.2.1
+172.16.0.1
+172.16.0.2
+172.16.1.1
+172.16.1.2
+172.16.2.1
+172.16.2.2
+192.168.0.1
+192.168.0.2
+192.168.1.1
+} { ping $address }
+
